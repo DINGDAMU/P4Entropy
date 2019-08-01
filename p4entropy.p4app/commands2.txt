@@ -1,0 +1,16 @@
+table_add ipv4_lpm ipv4_forward 10.0.1.1/32 => 00:00:00:00:01:01 2
+table_add ipv4_lpm ipv4_forward 10.0.2.2/32 => 00:00:00:00:02:02 1
+table_add ipv4_lpm ipv4_forward 10.0.3.3/32 => 00:00:00:00:03:03 3
+table_set_default read do_read
+table_set_default log_101 do_log_101
+table_set_default log_110 do_log_110
+table_set_default log_111 do_log_111
+table_set_default expES do_expES
+table_set_default calLarge do_calLarge
+table_set_default calSmall do_calSmall
+
+table_set_default update do_update
+table_set_default query do_query
+
+
+
