@@ -1,21 +1,6 @@
 #include <core.p4>
 #include <v1model.p4>
 
-struct custom_metadata_t {
-    bit<32> nhop_ipv4;
-    bit<64> buc_sum;
-    bit<64> buc_sumR1;
-    bit<64> buc_sumR2;
-    bit<32> log_value;
-    bit<64> exp_value;
-    bit<8>  powerS;
-    bit<64> buc_val;
-    bit<32> exponent;
-    bit<32> bEXP;
-    bit<64> power_sum;
-    bit<64> decimal;
-    bit<64> pow;
-}
 
 header ethernet_t {
     bit<48> dstAddr;
@@ -60,8 +45,42 @@ header udp_t {
 }
 
 struct metadata {
-    @name(".custom_metadata") 
-    custom_metadata_t custom_metadata;
+    bit<64> nhop_ipv4;
+    bit<64> buc_sum;
+    bit<64> buc_sumR1;
+    bit<64> buc_sumR2;
+    bit<64> log_value;
+    bit<64> exp_value;
+    bit<8>  powerS;
+    bit<64> buc_val;
+    bit<64> exponent;
+    bit<64> bEXP;
+    bit<64> power_sum;
+    bit<64> decimal;
+    bit<64> pow;
+    bit<32> h1;
+    bit<32> h2;
+    bit<32> h3;
+    bit<32> h4;
+    bit<64> g1;
+    bit<64> g2;
+    bit<64> g3;
+    bit<64> g4;
+    bit<64> c1;
+    bit<64> c2;
+    bit<64> c3;
+    bit<64> c4;
+    bit<64> median;
+    bit<64> m1;
+    bit<64> m2;
+    bit<64> m3;
+    bit<64> m4;
+    bit<64> tot;
+    bit<64> sum;
+    bit<64> log_sum;
+    bit<64> log_S;
+    bit<64> entropy;
+
 }
 
 struct headers {
@@ -127,27 +146,26 @@ control egress(inout headers hdr, inout metadata meta, inout standard_metadata_t
 }
 
 
-@name(".register") register<bit<64>>(32w3) register_0;
+/*register<bit<64>>(32w3) register_0;*/
+
+register<bit<64>>(32w30) register1;
+register<bit<64>>(32w30) register2;
+register<bit<64>>(32w30) register3;
+register<bit<64>>(32w30) register4;
+register<bit<64>>(32w5)  queryResult;
+register<bit<64>>(32w1)  SUM;
+register<bit<64>>(32w1)  S;
+register<bit<64>>(32w4)  finalResults;
 
 control ingress(inout headers hdr, inout metadata meta, inout standard_metadata_t standard_metadata) {
-    @name(".do_calLarge") action do_calLarge() {
-        meta.custom_metadata.power_sum = (meta.custom_metadata.power_sum >> 10) * meta.custom_metadata.decimal;
-        register_0.write((bit<32>)2, (bit<64>)meta.custom_metadata.power_sum);
-    }
-    @name(".do_calSmall") action do_calSmall() {
-        meta.custom_metadata.power_sum = meta.custom_metadata.power_sum * meta.custom_metadata.decimal >> 10;
-        register_0.write((bit<32>)2, (bit<64>)meta.custom_metadata.power_sum);
-    }
-    @name(".do_expES") action do_expES() {
-        meta.custom_metadata.exponent = 32w15;
-        register_0.write((bit<32>)1, (bit<64>)meta.custom_metadata.exponent);
-        meta.custom_metadata.bEXP = meta.custom_metadata.exponent * meta.custom_metadata.log_value;
-        meta.custom_metadata.exp_value = (bit<64>)(meta.custom_metadata.bEXP >> 10);
-        meta.custom_metadata.pow = (bit<64>)meta.custom_metadata.bEXP - (meta.custom_metadata.exp_value << 10);
-        meta.custom_metadata.decimal = meta.custom_metadata.decimal + meta.custom_metadata.pow;
-        meta.custom_metadata.decimal = meta.custom_metadata.decimal + 64w1024;
-        meta.custom_metadata.decimal = meta.custom_metadata.decimal - (meta.custom_metadata.pow * (64w1024 - meta.custom_metadata.pow) >> 11);
-        meta.custom_metadata.decimal = meta.custom_metadata.decimal + (((meta.custom_metadata.pow * (64w1024 - meta.custom_metadata.pow)>>10) * (64w2048 - meta.custom_metadata.pow)>>10) * 64w170 >> 10);
+     action do_expES()  {
+        meta.exp_value = (bit<64>)(meta.bEXP >> 10);
+        meta.pow = (bit<64>)meta.bEXP - (meta.exp_value << 10);
+        meta.decimal = meta.decimal + meta.pow;
+        meta.decimal = meta.decimal + 64w1024;
+        meta.decimal = meta.decimal - (meta.pow * (64w1024 - meta.pow) >> 11);
+        meta.decimal = meta.decimal + (((meta.pow * (64w1024 - meta.pow)>>10) * (64w2048 - meta.pow)>>10) * 64w170 >> 10);
+        
      }
     @name(".ipv4_forward") action ipv4_forward(bit<48> dstAddr, bit<9> port) {
         standard_metadata.egress_spec = port;
@@ -158,50 +176,81 @@ control ingress(inout headers hdr, inout metadata meta, inout standard_metadata_
     @name("._drop") action _drop() {
         mark_to_drop();
     }
-    @name(".do_log_101") action do_log_101() {
-        meta.custom_metadata.log_value = meta.custom_metadata.log_value + 32w330;
-        register_0.write((bit<32>)1, (bit<64>)meta.custom_metadata.log_value);
+    action do_logES() {
+        meta.buc_val = meta.buc_sum | (meta.buc_sum >> 1);
+        meta.buc_val = meta.buc_val | (meta.buc_val >> 2);
+        meta.buc_val = meta.buc_val | (meta.buc_val >> 4);
+        meta.buc_val = meta.buc_val | (meta.buc_val >> 8);
+        meta.buc_val = meta.buc_val | (meta.buc_val >> 16);
+        meta.buc_val = meta.buc_val | (meta.buc_val >> 32);
+        meta.buc_val = (meta.buc_val & 64w0x5555555555555555) + ((meta.buc_val >> 1) & 64w0x5555555555555555);
+        meta.buc_val = (meta.buc_val & 64w0x3333333333333333) + ((meta.buc_val >> 2) & 64w0x3333333333333333);
+        meta.buc_val = (meta.buc_val & 64w0xf0f0f0f0f0f0f0f) + ((meta.buc_val >> 4) & 64w0xf0f0f0f0f0f0f0f);
+        meta.buc_val = (meta.buc_val & 64w0xff00ff00ff00ff) + ((meta.buc_val >> 8) & 64w0xff00ff00ff00ff);
+        meta.buc_val = (meta.buc_val & 64w0xffff0000ffff) + ((meta.buc_val >> 16) & 64w0xffff0000ffff);
+        meta.buc_val = (meta.buc_val & 64w0xffffffff) + ((meta.buc_val >> 32) & 64w0xffffffff);
+            }
+
+
+action do_update() {
+        hash(meta.h1, HashAlgorithm.xxhash64_1, (bit<16>)0, { hdr.ipv4.srcAddr, hdr.ipv4.dstAddr }, (bit<64>)30);
+        hash(meta.h2, HashAlgorithm.xxhash64_2, (bit<16>)0, { hdr.ipv4.srcAddr, hdr.ipv4.dstAddr }, (bit<64>)30);
+        hash(meta.h3, HashAlgorithm.xxhash64_3, (bit<16>)0, { hdr.ipv4.srcAddr, hdr.ipv4.dstAddr }, (bit<64>)30);
+        hash(meta.h4, HashAlgorithm.xxhash64_4, (bit<16>)0, { hdr.ipv4.srcAddr, hdr.ipv4.dstAddr }, (bit<64>)30);
+        hash(meta.g1, HashAlgorithm.xxhash64_1, (bit<16>)0, { hdr.ipv4.srcAddr, hdr.ipv4.dstAddr }, (bit<64>)2);
+        hash(meta.g2, HashAlgorithm.xxhash64_2, (bit<16>)0, { hdr.ipv4.srcAddr, hdr.ipv4.dstAddr }, (bit<64>)2);
+        hash(meta.g3, HashAlgorithm.xxhash64_3, (bit<16>)0, { hdr.ipv4.srcAddr, hdr.ipv4.dstAddr }, (bit<64>)2);
+        hash(meta.g4, HashAlgorithm.xxhash64_4, (bit<16>)0, { hdr.ipv4.srcAddr, hdr.ipv4.dstAddr }, (bit<64>)2);
+
+        register1.read(meta.c1, (bit<32>)meta.h1);
+        register2.read(meta.c2, (bit<32>)meta.h2);
+        register3.read(meta.c3, (bit<32>)meta.h3);
+        register4.read(meta.c4, (bit<32>)meta.h4);
+        meta.g1 =  ((2 * meta.g1) - 1);
+        meta.g2 =  ((2 * meta.g2) - 1);
+        meta.g3 =  ((2 * meta.g3) - 1);
+        meta.g4 =  ((2 * meta.g4) - 1);
+        meta.c1 = meta.c1 + meta.g1;
+        meta.c2 = meta.c2 + meta.g2;
+        meta.c3 = meta.c3 + meta.g3;
+        meta.c4 = meta.c4 + meta.g4;
+        register1.write((bit<32>)meta.h1, (bit<64>)meta.c1);
+        register2.write((bit<32>)meta.h2, (bit<64>)meta.c2);
+        register3.write((bit<32>)meta.h3, (bit<64>)meta.c3);
+        register4.write((bit<32>)meta.h4, (bit<64>)meta.c4);
+        meta.m1 =  meta.c1 * meta.g1;
+        meta.m2 =  meta.c2 * meta.g2;
+        meta.m3 =  meta.c3 * meta.g3;
+        meta.m4 =  meta.c4 * meta.g4;
+        queryResult.write(0, meta.m1);
+        queryResult.write(1, meta.m2);
+        queryResult.write(2, meta.m3);
+        queryResult.write(3, meta.m4);
     }
-    @name(".do_log_110") action do_log_110() {
-        meta.custom_metadata.log_value = meta.custom_metadata.log_value + 32w599;
-        register_0.write((bit<32>)1, (bit<64>)meta.custom_metadata.log_value);
-    }
-    @name(".do_log_111") action do_log_111() {
-        meta.custom_metadata.log_value = meta.custom_metadata.log_value + 32w827;
-        register_0.write((bit<32>)1, (bit<64>)meta.custom_metadata.log_value);
-    }
-    @netro("reglocked", "register;") @name(".do_read") action do_read() {
-        meta.custom_metadata.buc_sum = 64w12;
-        meta.custom_metadata.buc_val = meta.custom_metadata.buc_sum | (meta.custom_metadata.buc_sum >> 1);
-        meta.custom_metadata.buc_val = meta.custom_metadata.buc_val | (meta.custom_metadata.buc_val >> 2);
-        meta.custom_metadata.buc_val = meta.custom_metadata.buc_val | (meta.custom_metadata.buc_val >> 4);
-        meta.custom_metadata.buc_val = meta.custom_metadata.buc_val | (meta.custom_metadata.buc_val >> 8);
-        meta.custom_metadata.buc_val = meta.custom_metadata.buc_val | (meta.custom_metadata.buc_val >> 16);
-        meta.custom_metadata.buc_val = meta.custom_metadata.buc_val | (meta.custom_metadata.buc_val >> 32);
-        meta.custom_metadata.buc_val = (meta.custom_metadata.buc_val & 64w0x5555555555555555) + ((meta.custom_metadata.buc_val >> 1) & 64w0x5555555555555555);
-        meta.custom_metadata.buc_val = (meta.custom_metadata.buc_val & 64w0x3333333333333333) + ((meta.custom_metadata.buc_val >> 2) & 64w0x3333333333333333);
-        meta.custom_metadata.buc_val = (meta.custom_metadata.buc_val & 64w0xf0f0f0f0f0f0f0f) + ((meta.custom_metadata.buc_val >> 4) & 64w0xf0f0f0f0f0f0f0f);
-        meta.custom_metadata.buc_val = (meta.custom_metadata.buc_val & 64w0xff00ff00ff00ff) + ((meta.custom_metadata.buc_val >> 8) & 64w0xff00ff00ff00ff);
-        meta.custom_metadata.buc_val = (meta.custom_metadata.buc_val & 64w0xffff0000ffff) + ((meta.custom_metadata.buc_val >> 16) & 64w0xffff0000ffff);
-        meta.custom_metadata.buc_val = (meta.custom_metadata.buc_val & 64w0xffffffff) + ((meta.custom_metadata.buc_val >> 32) & 64w0xffffffff);
-        meta.custom_metadata.log_value = (bit<32>)((meta.custom_metadata.buc_val - 64w1) << 10);
-        register_0.write((bit<32>)0, (bit<64>)meta.custom_metadata.buc_sum);
-    }
-    @name(".calLarge") table calLarge {
-        actions = {
-            do_calLarge;
+      
+    action do_query(){
+        if ((meta.m1 <= meta.m2 && meta.m1 <= meta.m3 && meta.m1 <= meta.m4 && meta.m2 >= meta.m3 && meta.m2 >= meta.m4) || (meta.m2 <= meta.m1 && meta.m2 <= meta.m3 && meta.m2 <= meta.m4 && meta.m1 >= meta.m3 && meta.m1 >= meta.m4)){
+            meta.median = (meta.m3 + meta.m4) >> 1;
         }
+        else if ((meta.m1 <= meta.m2 && meta.m1 <= meta.m3 && meta.m1 <= meta.m4 && meta.m3 >= meta.m2 && meta.m3 >= meta.m4) || (meta.m3 <= meta.m1 && meta.m3 <= meta.m2 && meta.m3 <= meta.m4 && meta.m1 >= meta.m2 && meta.m1 >= meta.m4)){
+            meta.median = (meta.m2 + meta.m4) >> 1;
+            }
+        else if ((meta.m1 <= meta.m2 && meta.m1 <= meta.m3 && meta.m1 <= meta.m4 && meta.m4 >= meta.m2 && meta.m4 >= meta.m3) || (meta.m4 <= meta.m1 && meta.m4 <= meta.m2 && meta.m4 <= meta.m3 && meta.m1 >= meta.m2 && meta.m1 >= meta.m3)){
+            meta.median = (meta.m2 + meta.m3) >> 1;
+            }
+        else if ((meta.m2 <= meta.m1 && meta.m2 <= meta.m3 && meta.m2 <= meta.m4 && meta.m3 >= meta.m1 && meta.m3 >= meta.m4) || (meta.m3 <= meta.m1 && meta.m3 <= meta.m2 && meta.m3 <= meta.m4 && meta.m2 >= meta.m1 && meta.m2 >= meta.m4)){
+            meta.median = (meta.m1 + meta.m4) >> 1;
+            }
+        else if ((meta.m2 <= meta.m1 && meta.m2 <= meta.m3 && meta.m2 <= meta.m4 && meta.m4 >= meta.m1 && meta.m4 >= meta.m3) || (meta.m4 <= meta.m1 && meta.m4 <= meta.m2 && meta.m4 <= meta.m3 && meta.m2 >= meta.m1 && meta.m2 >= meta.m3)){
+            meta.median = (meta.m1 + meta.m3) >> 1;
+            }
+        else{
+            meta.median = (meta.m1 + meta.m2) >> 1;
+            }
+
+        queryResult.write(4, meta.median);
     }
-    @name(".calSmall") table calSmall {
-        actions = {
-            do_calSmall;
-        }
-    }
-    @name(".expES") table expES {
-        actions = {
-            do_expES;
-        }
-    }
+
     @name(".ipv4_lpm") table ipv4_lpm {
         actions = {
             ipv4_forward;
@@ -212,77 +261,160 @@ control ingress(inout headers hdr, inout metadata meta, inout standard_metadata_
         }
         size = 1024;
     }
-    @name(".log_101") table log_101 {
+    table update{
         actions = {
-            do_log_101;
+            do_update;
         }
     }
-    @name(".log_110") table log_110 {
+    table query{
         actions = {
-            do_log_110;
+            do_query;
         }
     }
-    @name(".log_111") table log_111 {
+    table logES{
         actions = {
-            do_log_111;
+            do_logES;
         }
     }
-    @name(".read") table read {
+    table logES2{
         actions = {
-            do_read;
+            do_logES;
         }
     }
+    table logES3{
+        actions = {
+            do_logES;
+        }
+    }
+    table expES{
+        actions = {
+            do_expES;
+        }
+    }
+
+
+
     apply {
         ipv4_lpm.apply();
-        read.apply();
-        meta.custom_metadata.buc_sumR1 = meta.custom_metadata.buc_sum ^ (meta.custom_metadata.buc_sum >> 8w1);
-        meta.custom_metadata.buc_sumR2 = meta.custom_metadata.buc_sum ^ (meta.custom_metadata.buc_sum >> 8w2);
+        S.read(meta.tot, 0);
+        meta.tot = meta.tot + 64w1;
+        S.write(0, meta.tot);
+        update.apply();
+        query.apply();
+        SUM.read(meta.sum, 0);
+        meta.buc_sum = meta.median;
+        logES.apply();
 
-        if (meta.custom_metadata.buc_sum < meta.custom_metadata.buc_sumR1 ){
-            if(meta.custom_metadata.buc_sum > meta.custom_metadata.buc_sumR2){
-            log_101.apply();
+        meta.log_value = (bit<64>)((meta.buc_val - 64w1) << 10);
+        meta.buc_sumR1 = meta.buc_sum ^ (meta.buc_sum >> 8w1);
+        meta.buc_sumR2 = meta.buc_sum ^ (meta.buc_sum >> 8w2);
+        if (meta.buc_sum < meta.buc_sumR1 ){
+            if(meta.buc_sum > meta.buc_sumR2){
+                meta.log_value = meta.log_value + 64w330;
         }
         }else {
-            if (meta.custom_metadata.buc_sum < meta.custom_metadata.buc_sumR2) {
-                log_110.apply();
+            if (meta.buc_sum < meta.buc_sumR2) {
+                meta.log_value = meta.log_value + 64w599;
             }
             else {
-                log_111.apply();
+                meta.log_value = meta.log_value + 64w827;
             }
         }
-        expES.apply();
-        if (meta.custom_metadata.exp_value < 8){
-            meta.custom_metadata.powerS = (bit<8>)1<< ((bit<8>)meta.custom_metadata.exp_value);
-            meta.custom_metadata.power_sum = (bit<64>)meta.custom_metadata.powerS;
-        }else if (meta.custom_metadata.exp_value < 16 ){
-            meta.custom_metadata.powerS =(bit<8>)1<<((bit<8>)meta.custom_metadata.exp_value - 8);
-            meta.custom_metadata.power_sum = (bit<64>)meta.custom_metadata.powerS * (1<<8);
-        }else if (meta.custom_metadata.exp_value < 24 ){
-meta.custom_metadata.powerS =(bit<8>)1<<((bit<8>)meta.custom_metadata.exp_value - 16);
-            meta.custom_metadata.power_sum = (bit<64>)meta.custom_metadata.powerS * (1<<16);
-        }else if (meta.custom_metadata.exp_value < 32 ){
-meta.custom_metadata.powerS =(bit<8>)1<<((bit<8>)meta.custom_metadata.exp_value - 24);
-            meta.custom_metadata.power_sum = (bit<64>)meta.custom_metadata.powerS * (1<<24);
-        }else if (meta.custom_metadata.exp_value < 40 ){
-meta.custom_metadata.powerS =(bit<8>)1<<((bit<8>)meta.custom_metadata.exp_value - 32);
-            meta.custom_metadata.power_sum = (bit<64>)meta.custom_metadata.powerS * (1<<32);
-        }else if (meta.custom_metadata.exp_value < 48 ){
-meta.custom_metadata.powerS =(bit<8>)1<<((bit<8>)meta.custom_metadata.exp_value - 40);
-            meta.custom_metadata.power_sum = (bit<64>)meta.custom_metadata.powerS * (1<<40);
-        }else if (meta.custom_metadata.exp_value < 56 ){
-meta.custom_metadata.powerS =(bit<8>)1<<((bit<8>)meta.custom_metadata.exp_value - 48);
-            meta.custom_metadata.power_sum = (bit<64>)meta.custom_metadata.powerS * (1<<48);
+        if  (meta.buc_sum == 2 ){
+            meta.sum = meta.sum + meta.log_value + 1024;
+        }else if (meta.buc_sum > 2 && meta.buc_sum < 6){
+            meta.sum = meta.sum + meta.log_value + 1198;
+        }else if (meta.buc_sum > 6){
+            meta.sum = meta.sum + meta.log_value + 1475;
         }else{
-meta.custom_metadata.powerS =(bit<8>)1<<((bit<8>)meta.custom_metadata.exp_value - 56);
-            meta.custom_metadata.power_sum = (bit<64>)meta.custom_metadata.powerS * (1<<56);
+            meta.sum = meta.sum;
         }
-        if (meta.custom_metadata.exp_value > 64w10) {
-            calLarge.apply();
+        SUM.write(0, meta.sum);
+        if (meta.tot >= 10){
+           meta.buc_sum = meta.sum;
+
+           logES2.apply();
+
+           meta.log_sum = (bit<64>)((meta.buc_val - 64w1) << 10);
+           meta.buc_sumR1 = meta.buc_sum ^ (meta.buc_sum >> 8w1);
+           meta.buc_sumR2 = meta.buc_sum ^ (meta.buc_sum >> 8w2);
+            if (meta.buc_sum < meta.buc_sumR1 ){
+                if(meta.buc_sum > meta.buc_sumR2){
+                    meta.log_sum = meta.log_sum + 64w330;
+                }
+            }else {
+                if (meta.buc_sum < meta.buc_sumR2) {
+                    meta.log_sum = meta.log_sum + 64w599;
+                }
+            else {
+                meta.log_sum = meta.log_sum + 64w827;
+            }
         }
-        else {
-            calSmall.apply();
+        meta.log_sum = meta.log_sum - 10*1024;
+        finalResults.write(0, meta.log_sum);
+
+            meta.buc_sum = meta.tot;
+
+           logES3.apply();
+           meta.log_S = (bit<64>)((meta.buc_val - 64w1) << 10);
+           meta.buc_sumR1 = meta.buc_sum ^ (meta.buc_sum >> 8w1);
+           meta.buc_sumR2 = meta.buc_sum ^ (meta.buc_sum >> 8w2);
+            if (meta.buc_sum < meta.buc_sumR1 ){
+                if(meta.buc_sum > meta.buc_sumR2){
+                    meta.log_S = meta.log_S + 64w330;
+                }
+            }else {
+                if (meta.buc_sum < meta.buc_sumR2) {
+                    meta.log_S = meta.log_S + 64w599;
+                }
+            else {
+                meta.log_S = meta.log_S + 64w827;
+            }
         }
-    }
+        finalResults.write(1, meta.log_S);
+        if (meta.log_sum > meta.log_S){ 
+           meta.exponent = meta.log_sum - meta.log_S;
+           meta.bEXP = meta.exponent;
+            expES.apply();
+         if (meta.exp_value < 8){
+                     meta.powerS = (bit<8>)1<< ((bit<8>)meta.exp_value);
+                     meta.power_sum = (bit<64>)meta.powerS;
+                 }else if (meta.exp_value < 16 ){
+                     meta.powerS =(bit<8>)1<<((bit<8>)meta.exp_value - 8);
+                     meta.power_sum = (bit<64>)meta.powerS * (1<<8);
+                 }else if (meta.exp_value < 24 ){
+         meta.powerS =(bit<8>)1<<((bit<8>)meta.exp_value - 16);
+                     meta.power_sum = (bit<64>)meta.powerS * (1<<16);
+                 }else if (meta.exp_value < 32 ){
+         meta.powerS =(bit<8>)1<<((bit<8>)meta.exp_value - 24);
+                     meta.power_sum = (bit<64>)meta.powerS * (1<<24);
+                 }else if (meta.exp_value < 40 ){
+         meta.powerS =(bit<8>)1<<((bit<8>)meta.exp_value - 32);
+                     meta.power_sum = (bit<64>)meta.powerS * (1<<32);
+                 }else if (meta.exp_value < 48 ){
+         meta.powerS =(bit<8>)1<<((bit<8>)meta.exp_value - 40);
+                     meta.power_sum = (bit<64>)meta.powerS * (1<<40);
+                 }else if (meta.exp_value < 56 ){
+         meta.powerS =(bit<8>)1<<((bit<8>)meta.exp_value - 48);
+                     meta.power_sum = (bit<64>)meta.powerS * (1<<48);
+                 }else{
+         meta.powerS =(bit<8>)1<<((bit<8>)meta.exp_value - 56);
+                     meta.power_sum = (bit<64>)meta.powerS * (1<<56);
+                 }
+         
+                meta.power_sum = (meta.power_sum) * meta.decimal;
+            finalResults.write(2, meta.power_sum);
+            meta.entropy = (meta.log_S - (meta.power_sum));
+
+            finalResults.write(3, meta.entropy);
+    
+           }else{
+                meta.entropy = meta.log_S;
+           }
+
+                       
+           }
+}
 }
 
 control DeparserImpl(packet_out packet, in headers hdr) {

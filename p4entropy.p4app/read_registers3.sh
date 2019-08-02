@@ -32,6 +32,11 @@ echo "register_read register3" | docker exec  -i hh simple_switch_CLI --thrift-p
 echo
 echo "register_read register4" | docker exec  -i hh simple_switch_CLI --thrift-port 22224
 echo
-echo "register_read result" | docker exec  -i hh simple_switch_CLI --thrift-port 22224
+echo "register_read queryResult" | docker exec  -i hh simple_switch_CLI --thrift-port 22224
+echo
+echo "register_read SUM" | docker exec  -i hh simple_switch_CLI --thrift-port 22224
+echo "register_read S" | docker exec  -i hh simple_switch_CLI --thrift-port 22224
+echo "register_read finalResults" | docker exec  -i hh simple_switch_CLI --thrift-port 22224
+
 
 

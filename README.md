@@ -1,4 +1,4 @@
-# Logarithm and expnential-function estimation in P4 language 
+# Entropy estimation entirely in programmable data plane
 
 
 Installation
@@ -10,11 +10,11 @@ Installation
 2. Clone the repository to local 
 
     ```
-    git clone https://github.com/DINGDAMU/Network-wide-heavy-hitter-detection
+    git clone https://github.com/DINGDAMU/P4Entropy.git    
     ```
 
 3. ```
-    cd Network-wide-heavy-hitter-detection
+    cd P4Entropy
    ```
 
 4. If you want, put the `p4app` script somewhere in your path. For example:
@@ -24,45 +24,39 @@ Installation
     ```
     I have already modified the default docker image to **dingdamu/p4app-ddos:nwhhd**, so `p4app` script can be used directly.
 
-P4Log algorithm
+P4Entropy
 --------------
 
 1.  ```
-    ./p4app run log.p4app 
+    ./p4app run p4entropy.p4app 
     ```
     After this step you'll see the terminal of **mininet**
-2. Forwarding some packets in **mininet**
+2. Forwarding more than 10 packets in **mininet**
    ```
     pingall
+    pingall
+    pingall
+    pingall
    ```
-3. Enter log.p4app folder
+3. Enter p4entropy.p4app folder
    ```
-    cd log.p4app 
+    cd p4entropy.p4app 
    ```
 4. Check the result by reading the register
    ```
     ./read_registers1.sh
+    ./read_registers2.sh
+    ./read_registers3.sh
    ```
-5. `Register[0]` is the input value and `Register[1]` is the result of `log2(Register[0])` amplified $2^{10}$ times
+ 
+ `Register1-4` is Count Sketch
 
-P4Exp algorithm
---------------
+ Register `queryResult[0:3]` is the queried packet count of last incoming flow in Count Sketch, and `queryResult[4]` is the median value of  `queryResult[0:3]`
 
-1.  ```
-    ./p4app run exp.p4app 
-    ```
-    After this step you'll see the terminal of **mininet**
-2. Forwarding some packets in **mininet**
-   ```
-    pingall
-   ```
-3. Enter exp.p4app folder
-   ```
-    cd exp.p4app 
-   ```
-4. Check the result by reading the register
-   ```
-    ./read_registers1.sh
-   ```
-5. `Register[0]` is the base and `Register[1]` is the exponent, the exponential-function result is in `Register[2]` 
+ Register `SUM` is the result of `Sum`
+
+ Register `S` is total number of packets
+
+ In register `finalResults`, `finalResults[0]` is $log_2{Sum}$, `finalResults[1]` is $log_2{S}$, `finalResults[2]` is $2^{log_2{Sum}-log_2{S}}$ and  `finalResults[3]` is the Entropy estimation amplified $2^{10}$ times 
+
 
