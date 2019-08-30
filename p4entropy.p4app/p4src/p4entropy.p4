@@ -322,8 +322,8 @@ action do_update() {
         }
         if  (meta.buc_sum == 2 ){
             meta.sum = meta.sum + meta.log_value + 1024;
-        }else if (meta.buc_sum > 2 && meta.buc_sum < 6){
-            meta.sum = meta.sum + meta.log_value + 1198;
+/*        }else if (meta.buc_sum > 2 && meta.buc_sum < 6){*/
+            /*meta.sum = meta.sum + meta.log_value + 1198;*/
         }else if (meta.buc_sum > 6){
             meta.sum = meta.sum + meta.log_value + 1475;
         }else{
