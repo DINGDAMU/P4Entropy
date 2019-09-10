@@ -11,3 +11,7 @@ table_set_default logES2 do_logES
 table_set_default logES3 do_logES
 
 table_set_default expES do_expES
+
+table_set_default logES_dec do_logES_dec
+table_set_default logES_dec2 do_logES_dec2
+table_set_default logES_dec3 do_logES_dec3
