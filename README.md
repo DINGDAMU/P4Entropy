@@ -31,13 +31,20 @@ P4Entropy
     ./p4app run p4entropy.p4app 
     ```
     After this step you'll see the terminal of **mininet**
-2. Forwarding more than 10 packets in **mininet**
+2. Forwarding at least 10 packets in **mininet**
+
+Check the difference of entropy between
    ```
     pingall
     pingall
-    pingall
-    pingall
    ```
+and 
+   ```
+    h1 ping h2 -c 12 -i 0.1
+   ```
+
+
+
 3. Enter p4entropy.p4app folder
    ```
     cd p4entropy.p4app 
