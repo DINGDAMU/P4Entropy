@@ -1,4 +1,4 @@
-# Entropy estimation entirely in programmable data plane
+# Network traffic entropy estimation in P4 language 
 
 Citation
 --------
