@@ -1,5 +1,15 @@
 # Entropy estimation entirely in programmable data plane
-Citation: Ding, D., M. Savi, and D. Siracusa. "Estimating Logarithmic and Exponential Functions to Track Network Traffic Entropy in P4." IEEE/IFIP Network Operations and Management Symposium (NOMS). 2020.
+
+Citation
+--------
+```
+@inproceedings{ding2019estimating,
+  title={Estimating Logarithmic and Exponential Functions to Track Network Traffic Entropy in P4},
+  author={Ding, Damu and Savi, Marco and Siracusa, Domenico},
+  booktitle={IEEE/IFIP Network Operations and Management Symposium (NOMS)},
+  year={2020}
+}
+```
 
 Installation
 ------------
