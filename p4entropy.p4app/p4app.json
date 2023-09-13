@@ -1,5 +1,5 @@
 {
-  "program": "p4src/imp_p4entropy.p4",
+  "program": "p4src/p4entropy.p4",
   "language": "p4-16",
   "targets": {
       "custom": {
